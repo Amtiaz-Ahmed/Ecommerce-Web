@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Ecommerce Backend (Microservices)
 
 Stack: **Node.js + Express**, **Prisma + MySQL**, **Redis** (later). Frontend later: **React**.
@@ -124,3 +125,7 @@ npm run dev:gateway
 2. Expand `shared/database/prisma/schema.prisma` from `Ecommerce SRS.txt` and run migrations.
 3. Replace `stubOk` responses with Prisma queries.
 4. Add JWT auth middleware in `shared/common` and protect routes.
+=======
+# Ecommerce-Web
+A full-stack eCommerce application with complete frontend and backend, featuring user authentication, product browsing, cart management, and order processing, built for scalability and real-world usage.
+>>>>>>> c2619921425a4c6978f9d2716e821d50aab094e7
