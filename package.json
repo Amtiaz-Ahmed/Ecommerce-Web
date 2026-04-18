@@ -1,0 +1,30 @@
+{
+  "name": "ecommerce-microservices-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend-first ecommerce microservices scaffold",
+  "workspaces": [
+    "services/*",
+    "shared/*"
+  ],
+  "scripts": {
+    "db:generate": "prisma generate --schema shared/database/prisma/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema shared/database/prisma/schema.prisma",
+    "db:push": "prisma db push --schema shared/database/prisma/schema.prisma",
+    "db:studio": "prisma studio --schema shared/database/prisma/schema.prisma",
+    "dev": "concurrently -n gateway,admin,customer,store -c blue,magenta,green,yellow \"npm run dev:gateway\" \"npm run dev:admin\" \"npm run dev:customer\" \"npm run dev:store\"",
+    "dev:gateway": "npm --workspace services/api-gateway run dev",
+    "dev:admin": "npm --workspace services/admin-service run dev",
+    "dev:customer": "npm --workspace services/customer-service run dev",
+    "dev:store": "npm --workspace services/store-service run dev",
+    "postinstall": "node -e \"console.log('Workspaces linked. Run: npm run dev (all) or npm run dev:customer')\""
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "dotenv": "^17.4.2",
+    "prisma": "^7.7.0"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@ecommerce/database",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/client.js",
+  "scripts": {
+    "generate": "cd ../.. && prisma generate --schema shared/database/prisma/schema.prisma",
+    "migrate": "cd ../.. && prisma migrate dev --schema shared/database/prisma/schema.prisma",
+    "push": "cd ../.. && prisma db push --schema shared/database/prisma/schema.prisma",
+    "studio": "cd ../.. && prisma studio --schema shared/database/prisma/schema.prisma"
+  },
+  "dependencies": {
+    "@prisma/adapter-mariadb": "^7.7.0",
+    "@prisma/client": "^7.7.0",
+    "dotenv": "^17.4.2",
+    "mariadb": "^3.5.2"
+  },
+  "devDependencies": {
+    "prisma": "^7.7.0",
+    "typescript": "^6.0.3"
+  }
+}

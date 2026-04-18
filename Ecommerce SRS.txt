@@ -1,0 +1,675 @@
+# 🛒 E-COMMERCE BACKEND - COMPLETE SRS + SCHEMA + APIS + DOCKER
+## Professional Backend Project Specification
+
+---
+
+## 📋 1. SOFTWARE REQUIREMENTS SPECIFICATION (SRS)
+
+### 1.1 Functional Requirements
+
+
+USER MANAGEMENT ├── Register/Login/Logout (JWT) ├── Profile Management ├── Password Reset ├── Role-based Access (User/Admin)
+
+PRODUCT CATALOG ├── CRUD Products (Admin Only) ├── Search/Filter/Sort/Pagination ├── Categories & Tags ├── Product Images (Cloudinary)
+
+SHOPPING CART ├── Add/Remove/Update Items ├── Persistent Cart (Redis/DB) ├── Calculate Totals/Discounts ├── Quantity Validation
+
+ORDERS & CHECKOUT ├── Checkout Process ├── Order History ├── Order Status Tracking ├── Inventory Management
+
+PAYMENTS ├── Stripe Integration ├── Payment Intents ├── Webhook Verification ├── Refunds & Disputes
+
+ADMIN DASHBOARD ├── Manage Products/Orders/Users ├── Sales Analytics ├── Inventory Reports
+
+
+
+
+### 1.2 Non-Functional Requirements
+
+Performance: <200ms API response Security: JWT, Rate Limiting, Helmet Scalability: Docker + Prisma + MySQL + Redis Reliability: 99.9% Uptime Testing: 80%+ Coverage (Jest) Documentation: Swagger/OpenAPI Monitoring: Structured Logging
+
+### 1.3 Architecture and Tech Stack
+
+- Architecture: Microservices-based backend (service-per-domain with API gateway/BFF option).
+- Backend Runtime: Node.js
+- Backend Framework: Express.js
+- ORM: Prisma
+- Primary Database: MySQL
+- Cache/Session/Queue support: Redis
+- Frontend (later phase): React.js
+- Current project focus: Backend APIs, schema, services, auth, search, recommendation, and admin/store operations.
+
+### 1.4 Delivery Scope
+
+- Phase 1 (current): Backend-first implementation with clean API contracts for all panels.
+- Phase 2 (later): React frontend integration on top of stable backend APIs.
+
+
+
+---
+
+## 🗄️ 2. DATABASE SCHEMA (Prisma ORM)
+  
+```prisma
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  customer
+  store_owner
+  admin
+}
+
+enum OrderStatus {
+  pending
+  paid
+  shipped
+  delivered
+  cancelled
+}
+
+model User {
+  id            Int             @id @default(autoincrement())
+  email         String          @unique
+  passwordHash  String
+  name          String?
+  role          UserRole        @default(customer)
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  store         Store?
+  cart          Cart?
+  orders        Order[]
+  searchHistory SearchHistory[]
+  recommendations Recommendation[]
+  feedbacks     CustomerFeedback[]
+  usedDiscounts DiscountUsage[]
+}
+
+model Store {
+  id        Int       @id @default(autoincrement())
+  ownerId   Int       @unique
+  owner     User      @relation(fields: [ownerId], references: [id])
+  name      String
+  slug      String    @unique
+  logoUrl   String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+  discounts Discount[]
+  feedbacks CustomerFeedback[]
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  products  Product[]
+}
+
+model Product {
+  id            Int          @id @default(autoincrement())
+  storeId       Int
+  categoryId    Int?
+  name          String
+  slug          String       @unique
+  description   String?
+  price         Decimal      @db.Decimal(10, 2)
+  stockQuantity Int          @default(0)
+  imageUrls     Json?
+  tags          Json?
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  store         Store        @relation(fields: [storeId], references: [id])
+  category      Category?    @relation(fields: [categoryId], references: [id])
+  cartItems     CartItem[]
+  orderItems    OrderItem[]
+  feedbacks     CustomerFeedback[]
+  discountLinks ProductDiscount[]
+}
+
+model Cart {
+  id        Int        @id @default(autoincrement())
+  userId    Int        @unique
+  user      User       @relation(fields: [userId], references: [id])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     CartItem[]
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  cartId    Int
+  productId Int
+  quantity  Int
+  createdAt DateTime @default(now())
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@unique([cartId, productId])
+}
+
+model Order {
+  id                   Int         @id @default(autoincrement())
+  userId               Int
+  orderNumber          String      @unique
+  totalAmount          Decimal     @db.Decimal(10, 2)
+  status               OrderStatus @default(pending)
+  stripePaymentIntent  String?
+  shippingAddress      Json
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  user                 User        @relation(fields: [userId], references: [id])
+  items                OrderItem[]
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2)
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model SearchHistory {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  storeId   Int?
+  query     String
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Recommendation {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  productIds Json
+  reason     String?
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum FeedbackType {
+  product
+  store
+  delivery
+  support
+}
+
+enum DiscountType {
+  percentage
+  fixed_amount
+}
+
+enum DiscountScope {
+  product
+  store
+  global
+}
+
+model CustomerFeedback {
+  id           Int          @id @default(autoincrement())
+  userId       Int
+  storeId      Int?
+  productId    Int?
+  orderId      Int?
+  rating       Int
+  comment      String?
+  feedbackType FeedbackType
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store        Store?       @relation(fields: [storeId], references: [id])
+  product      Product?     @relation(fields: [productId], references: [id])
+
+  @@index([storeId, createdAt])
+  @@index([productId, createdAt])
+}
+
+model Discount {
+  id                Int             @id @default(autoincrement())
+  storeId           Int?
+  code              String?         @unique
+  name              String
+  description       String?
+  type              DiscountType
+  scope             DiscountScope
+  value             Decimal         @db.Decimal(10, 2)
+  minOrderAmount    Decimal?        @db.Decimal(10, 2)
+  maxDiscountAmount Decimal?        @db.Decimal(10, 2)
+  usageLimit        Int?
+  perUserLimit      Int?
+  startsAt          DateTime
+  endsAt            DateTime
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  store             Store?          @relation(fields: [storeId], references: [id])
+  productLinks      ProductDiscount[]
+  usages            DiscountUsage[]
+}
+
+model ProductDiscount {
+  id         Int      @id @default(autoincrement())
+  productId  Int
+  discountId Int
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  discount   Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, discountId])
+}
+
+model DiscountUsage {
+  id         Int      @id @default(autoincrement())
+  discountId Int
+  userId     Int
+  orderId    Int?
+  usedAt     DateTime @default(now())
+  discount   Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([discountId, usedAt])
+  @@index([userId, usedAt])
+}
+```
+
+🌐 3. COMPLETE API ENDPOINTS (25+ APIs)
+🔐 AUTHENTICATION
+├── POST /api/auth/register          {email, password, name}
+├── POST /api/auth/login             {email, password}
+├── POST /api/auth/refresh           {refreshToken}
+├── GET  /api/auth/me                → User Profile
+└── POST /api/auth/forgot-password   {email}
+
+🛍️ PRODUCTS (Public)
+├── GET  /api/products               ?page=1&limit=20&category=electronics&search=phone&sort=price
+├── GET  /api/products/:id
+├── GET  /api/products/category/:slug
+└── GET  /api/categories
+
+🛒 SHOPPING CART (Auth Required)
+├── GET  /api/cart                   → Cart Items + Total
+├── POST /api/cart/items             {productId, quantity}
+├── PUT  /api/cart/items/:id         {quantity}
+└── DELETE /api/cart/items/:id
+
+📦 ORDERS (Auth Required)
+├── GET  /api/orders                 ?page=1&status=paid
+├── GET  /api/orders/:id
+├── POST /api/orders/checkout        {shippingAddress}
+└── POST /api/orders/:id/pay         {paymentMethodId}
+
+💳 PAYMENTS (Stripe)
+├── POST /api/payments/create-intent {amount}
+└── POST /api/payments/webhook       Stripe Webhook
+
+👑 ADMIN APIs (Admin Only)
+├── POST  /api/admin/products
+├── PUT   /api/admin/products/:id
+├── DELETE /api/admin/products/:id
+├── GET   /api/admin/analytics
+├── GET   /api/admin/orders
+└── GET   /api/admin/users
+
+🔐 AUTH (All Panels)
+├── POST /api/auth/register {role:'customer'|'store_owner'}
+├── POST /api/auth/login
+├── GET /api/auth/me
+└── POST /api/auth/forgot-password
+
+🔍 AI SEARCH (Customer Panel)
+├── GET /api/search?q="leather bag"&store=abc-store&category=bags
+├── GET /api/search/suggestions?q=ba → ["bag","backpack","basket"]
+├── GET /api/search/history
+└── GET /api/recommendations → Personalized
+
+🛍️ PRODUCTS (Multi-Store)
+├── GET /api/stores
+├── GET /api/stores/:slug/products
+├── GET /api/stores/:slug
+├── GET /api/products/:id
+
+🛒 CUSTOMER PANEL
+├── GET /api/cart
+├── POST /api/cart/items {productId, quantity}
+├── POST /api/orders/checkout
+├── GET /api/orders
+├── POST /api/reviews
+
+🏪 STORE PANEL (Store Owner)
+├── POST /api/stores
+├── GET /api/stores/me/analytics
+├── POST /api/stores/me/products
+├── GET /api/stores/me/orders
+├── GET /api/stores/me/customers
+
+👑 ADMIN PANEL (Super Admin)
+├── GET /api/admin/stores
+├── GET /api/admin/analytics
+├── PUT /api/admin/stores/:id/approve
+├── GET /api/admin/users
+
+💳 PAYMENTS
+├── POST /api/payments/create-intent
+└── POST /api/payments/webhook
+
+---
+
+## 🧩 3.1 MISSING API SPEC (Customer + Admin + Store Panels)
+
+### Panel Model (RBAC)
+- `customer`: browse, search, cart, checkout, wishlist, reviews, own orders only.
+- `store_owner`: manage own store profile/products/orders/customers/promotions only.
+- `admin`: platform-level moderation, approvals, disputes, global analytics, user/store controls.
+
+### 🔍 Search & Suggestions (Customer-facing)
+#### Global Product Search
+- `GET /api/search/products?q=bag&page=1&limit=20&sort=relevance&storeSlug=&categorySlug=&minPrice=&maxPrice=`
+- Search scope: `name`, `description`, `tags`, `category name`.
+- Behavior: typo-tolerance (optional), partial keyword matching, relevance scoring.
+
+#### Search Suggestions (Typeahead + Personalized)
+- `GET /api/search/suggestions?q=ba&limit=10`
+- Response shape:
+  - `queries`: previously searched terms by current user.
+  - `products`: top matching product names.
+  - `categories`: matching category names.
+  - `stores`: matching store names/slugs.
+
+#### Search History
+- `GET /api/search/history?limit=20`
+- `DELETE /api/search/history/:id`
+- `DELETE /api/search/history` (clear all)
+
+#### Personalized Recommendations ("Searched bag once → show bag-related")
+- `GET /api/recommendations/dashboard?limit=20`
+- Source signals:
+  - recent search terms,
+  - viewed products,
+  - cart/wishlist products,
+  - category affinity.
+- Example modules:
+  - `Because you searched "bag"`
+  - `Related categories`
+  - `Trending in your interests`
+
+#### Dashboard Discovery (Top-selling + Suggested)
+- `GET /api/dashboard/customer?storeSlug=&range=7d|30d`
+- Returns:
+  - `topSellingProducts` (from paid/delivered order volume)
+  - `suggestedProducts` (personalized by search/view/cart/order behavior)
+  - `suggestedCategories` (interest-based categories)
+
+### 🤖 AI Discovery and Intelligent Search
+#### Natural Language Product Search
+- `POST /api/ai/discover`
+- Request example:
+  - `{ "prompt": "show me a waterproof office bag under 4000" }`
+- AI output is converted to structured filters:
+  - `query`, `category`, `priceRange`, `attributes`, `store`, `sort`
+- The system then calls standard product search pipeline (`/api/search/products`) with parsed filters.
+
+#### Hybrid Search Strategy
+- Combine keyword search (exact match + filters) with semantic search (meaning-based similarity).
+- Use weighted ranking:
+  - text relevance,
+  - sales/popularity,
+  - personalization score,
+  - availability/stock boost.
+
+#### AI Suggestions on Dashboard
+- `GET /api/ai/suggestions/dashboard?limit=20`
+- Includes:
+  - `Because you searched ...`
+  - `Similar intent products`
+  - `Related categories to explore`
+
+#### AI Safety, Reliability, and Cost Control
+- Validate AI-parsed filters before query execution.
+- Fallback to normal keyword search if AI output is invalid/unavailable.
+- Cache repeated prompt intents/results in Redis.
+- Log AI request, latency, parse-confidence, and fallback reason for monitoring.
+
+### ⭐ Customer Feedback APIs
+- `POST /api/feedback` (product/store/order feedback with rating + comment)
+- `GET /api/feedback/me?type=&page=&limit=`
+- `PUT /api/feedback/:id`
+- `DELETE /api/feedback/:id`
+- `GET /api/products/:id/feedback?page=&limit=`
+- `GET /api/stores/:slug/feedback?page=&limit=`
+
+### 🏷️ Discounts, Promo Codes, and Sales APIs
+#### Customer Usage
+- `POST /api/discounts/validate` `{ code, cartId }`
+- `POST /api/cart/apply-discount` `{ code }`
+- `DELETE /api/cart/remove-discount`
+
+#### Store Owner Management
+- `POST /api/stores/me/discounts` (product sale, store-wide sale, promo code)
+- `GET /api/stores/me/discounts?status=active|scheduled|expired`
+- `PUT /api/stores/me/discounts/:id`
+- `DELETE /api/stores/me/discounts/:id`
+- `POST /api/stores/me/discounts/:id/products`
+
+#### Admin Management
+- `POST /api/admin/discounts` (global campaign/promo code)
+- `GET /api/admin/discounts`
+- `PUT /api/admin/discounts/:id`
+- `DELETE /api/admin/discounts/:id`
+
+### 👑 Admin Panel APIs (Platform Management)
+- `GET /api/admin/users?role=&status=&page=&limit=`
+- `PUT /api/admin/users/:id/status` (active/suspended)
+- `GET /api/admin/stores?status=pending|approved|rejected`
+- `PUT /api/admin/stores/:id/approve`
+- `PUT /api/admin/stores/:id/reject`
+- `GET /api/admin/products?storeId=&status=&page=&limit=`
+- `DELETE /api/admin/products/:id` (policy violation)
+- `GET /api/admin/orders?status=&page=&limit=`
+- `GET /api/admin/disputes`
+- `PUT /api/admin/disputes/:id/resolve`
+- `GET /api/admin/analytics/overview`
+- `GET /api/admin/analytics/revenue`
+- `GET /api/admin/analytics/top-stores`
+- `GET /api/admin/analytics/top-products`
+- `GET /api/admin/dashboard?range=7d|30d|90d` (top selling products, suggested trends, feedback sentiment)
+
+### 🏪 Store Panel APIs (Store Owner Management)
+- `POST /api/stores` (create store profile)
+- `PUT /api/stores/me` (store branding/settings)
+- `GET /api/stores/me/dashboard`
+- `GET /api/stores/me/analytics?from=&to=`
+- `GET /api/stores/me/dashboard/sales?range=7d|30d|90d` (top selling products, revenue, discount impact)
+- `GET /api/stores/me/dashboard/suggestions` (what to promote next based on demand)
+- `POST /api/stores/me/products`
+- `PUT /api/stores/me/products/:id`
+- `DELETE /api/stores/me/products/:id`
+- `PATCH /api/stores/me/products/:id/stock`
+- `GET /api/stores/me/orders?status=&page=&limit=`
+- `PUT /api/stores/me/orders/:id/status` (confirmed/packed/shipped/delivered)
+- `GET /api/stores/me/customers?repeat=true`
+- `GET /api/stores/me/reviews`
+- `GET /api/stores/me/feedback?rating=&page=&limit=`
+- `POST /api/stores/me/promotions`
+- `POST /api/stores/me/discounts`
+
+### 🛒 Customer Panel APIs (Core Shopping Journey)
+- `GET /api/products`
+- `GET /api/products/:id`
+- `GET /api/search/products`
+- `GET /api/search/suggestions`
+- `GET /api/recommendations/dashboard`
+- `GET /api/dashboard/customer`
+- `GET /api/cart`
+- `POST /api/cart/items`
+- `PUT /api/cart/items/:id`
+- `DELETE /api/cart/items/:id`
+- `POST /api/orders/checkout`
+- `GET /api/orders`
+- `GET /api/orders/:id`
+- `POST /api/reviews`
+- `POST /api/feedback`
+- `POST /api/discounts/validate`
+- `POST /api/cart/apply-discount`
+- `POST /api/wishlist/items`
+- `GET /api/wishlist`
+
+### Ownership Rules (Must enforce in middleware)
+- Store owner can never access another store's resources.
+- Customer can only access own cart/orders/history/recommendations.
+- Admin can access all resources with audit logs for critical actions.
+
+🐳 4. DOCKER SETUP (Production Ready)
+docker-compose.yml
+
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://root:password@db:3306/ecommerce
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - STRIPE_SECRET_KEY=sk_test_...
+    depends_on:
+      - db
+      - redis
+    networks:
+      - ecommerce-net
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ecommerce
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - ecommerce-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - ecommerce-net
+
+volumes:
+  mysql_data:
+
+networks:
+  ecommerce-net:
+    driver: bridge
+
+
+FROM node:18-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+
+#Dockerfile
+FROM node:18-alpine AS runner
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+EXPOSE 3000
+CMD ["npm", "start"]
+
+
+🚀 5. DOCKER COMMANDS (Copy-Paste Ready)
+# 1. Clone & Setup
+mkdir ecommerce-backend && cd ecommerce-backend
+# Copy all files here
+
+# 2. Development (Hot Reload)
+docker-compose up --build
+
+# 3. Production Deploy
+docker-compose -f docker-compose.prod.yml up -d
+
+# 4. Database Access
+docker-compose exec db mysql -uroot -ppassword ecommerce
+
+# 5. Run Tests
+docker-compose exec app npm test
+
+# 6. Logs
+docker-compose logs -f app
+
+# 7. Stop & Cleanup
+docker-compose down -v
+docker system prune -f
+
+
+6. ENVIRONMENT VARIABLES (.env)
+# Server
+NODE_ENV=development
+PORT=3000
+
+# Database
+DATABASE_URL=mysql://root:password@db:3306/ecommerce
+
+# Cache
+REDIS_URL=redis://redis:6379
+
+# Auth
+JWT_SECRET=your-64-character-super-secret-jwt-key-here-change-in-production
+
+# Payments
+STRIPE_SECRET_KEY=sk_test_51...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# File Storage
+CLOUDINARY_URL=cloudinary://...
+
+# Rate Limiting
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX=100
+
+NODE_ENV=development
+PORT=3000
+DATABASE_URL=mysql://root:password@db:3306/ecommerce
+REDIS_URL=redis://redis:6379
+JWT_SECRET=your-64-char-super-secret-key-change-in-prod
+STRIPE_SECRET_KEY=sk_test_...
+ELASTICSEARCH_URL=http://elasticsearch:9200
+CLOUDINARY_URL=cloudinary://...
+
+
+7. PROJECT TIMELINE (4 Weeks)
+WEEK 1: Setup + Auth + Products (8 APIs)
+WEEK 2: Cart + Orders (6 APIs)  
+WEEK 3: Payments + Admin (6 APIs)
+WEEK 4: Testing + Deploy + Docs (5 APIs)
+
+
+🎯 PROJECT STATS
+📊 Total APIs: 45+
+🗄️  Database Tables: 14+
+🐳 Docker Services: 3
+⚡ Response Time: <200ms
+🧪 Test Coverage: 80%+
+🔒 Security: Production Ready
