@@ -20,7 +20,8 @@
     "postinstall": "node -e \"console.log('Workspaces linked. Run: npm run dev (all) or npm run dev:customer')\""
   },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "morgan": "^1.10.1"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",

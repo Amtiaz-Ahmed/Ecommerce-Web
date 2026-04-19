@@ -1,4 +1,5 @@
 const express = require("express");
+const morgan = require("morgan");
 const storeRoutes = require("./api/routes");
 const { errorHandler } = require("../../../shared/common/src");
 
@@ -6,6 +7,7 @@ const app = express();
 const port = process.env.STORE_SERVICE_PORT || 3003;
 
 app.use(express.json());
+app.use(morgan("dev"));
 app.use("/api/stores", storeRoutes);
 
 app.get("/health", (_req, res) => {
