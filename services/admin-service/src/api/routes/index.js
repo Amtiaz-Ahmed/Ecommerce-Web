@@ -1,4 +1,8 @@
 const router = require("express").Router();
+const { authenticate, authorize } = require("../../../../../shared/common/src");
+
+router.use(authenticate);
+router.use(authorize(["admin"]));
 
 router.use("/dashboard", require("../../modules/dashboard/routes"));
 router.use("/analytics", require("../../modules/analytics/routes"));

@@ -1,2 +1,4 @@
 node_modules
 .env
+.env.example
+API_DOCS.md
