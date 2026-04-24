@@ -1,83 +1,163 @@
 const service = require("./service");
 
-function dashboard(_req, res) {
-  res.json(service.dashboard());
+async function dashboard(req, res, next) {
+  try {
+    res.json(await service.dashboard(req.user));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function analytics(req, res) {
-  res.json(service.analytics(req.query));
+async function analytics(req, res, next) {
+  try {
+    res.json(await service.analytics(req.user, req.query || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function dashboardSales(req, res) {
-  res.json(service.dashboardSales(req.query));
+async function dashboardSales(req, res, next) {
+  try {
+    res.json(await service.dashboardSales(req.user, req.query || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function dashboardSuggestions(_req, res) {
-  res.json(service.dashboardSuggestions());
+async function dashboardSuggestions(req, res, next) {
+  try {
+    res.json(await service.dashboardSuggestions(req.user));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function createProduct(req, res) {
-  res.status(201).json(service.createProduct(req.body));
+async function createProduct(req, res, next) {
+  try {
+    res.status(201).json(await service.createProduct(req.user, req.body || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function updateProduct(req, res) {
-  res.json(service.updateProduct(req.params.id, req.body));
+async function updateProduct(req, res, next) {
+  try {
+    res.json(await service.updateProduct(req.user, req.params.id, req.body || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function deleteProduct(req, res) {
-  res.json(service.deleteProduct(req.params.id));
+async function deleteProduct(req, res, next) {
+  try {
+    res.json(await service.deleteProduct(req.user, req.params.id));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function patchStock(req, res) {
-  res.json(service.patchStock(req.params.id, req.body));
+async function patchStock(req, res, next) {
+  try {
+    res.json(await service.patchStock(req.user, req.params.id, req.body || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function orders(req, res) {
-  res.json(service.orders(req.query));
+async function orders(req, res, next) {
+  try {
+    res.json(await service.orders(req.user, req.query || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function orderStatus(req, res) {
-  res.json(service.orderStatus(req.params.id, req.body));
+async function orderStatus(req, res, next) {
+  try {
+    res.json(await service.orderStatus(req.user, req.params.id, req.body || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function customers(req, res) {
-  res.json(service.customers(req.query));
+async function customers(req, res, next) {
+  try {
+    res.json(await service.customers(req.user, req.query || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function reviews(_req, res) {
-  res.json(service.reviews());
+async function reviews(req, res, next) {
+  try {
+    res.json(await service.reviews(req.user));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function feedback(req, res) {
-  res.json(service.feedback(req.query));
+async function feedback(req, res, next) {
+  try {
+    res.json(await service.feedback(req.user, req.query || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function createPromotion(req, res) {
-  res.status(201).json(service.createPromotion(req.body));
+async function createPromotion(req, res, next) {
+  try {
+    res.status(201).json(await service.createPromotion(req.user, req.body || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function createDiscount(req, res) {
-  res.status(201).json(service.createDiscount(req.body));
+async function createDiscount(req, res, next) {
+  try {
+    res.status(201).json(await service.createDiscount(req.user, req.body || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function listDiscounts(req, res) {
-  res.json(service.listDiscounts(req.query));
+async function listDiscounts(req, res, next) {
+  try {
+    res.json(await service.listDiscounts(req.user, req.query || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function updateDiscount(req, res) {
-  res.json(service.updateDiscount(req.params.id, req.body));
+async function updateDiscount(req, res, next) {
+  try {
+    res.json(await service.updateDiscount(req.user, req.params.id, req.body || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function deleteDiscount(req, res) {
-  res.json(service.deleteDiscount(req.params.id));
+async function deleteDiscount(req, res, next) {
+  try {
+    res.json(await service.deleteDiscount(req.user, req.params.id));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function attachDiscountProducts(req, res) {
-  res.status(201).json(service.attachDiscountProducts(req.params.id, req.body));
+async function attachDiscountProducts(req, res, next) {
+  try {
+    res.status(201).json(await service.attachDiscountProducts(req.user, req.params.id, req.body || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function updateStoreProfile(req, res) {
-  res.json(service.updateStoreProfile(req.body));
+async function updateStoreProfile(req, res, next) {
+  try {
+    res.json(await service.updateStoreProfile(req.user, req.body || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
 module.exports = {

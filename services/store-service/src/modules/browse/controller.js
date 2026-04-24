@@ -1,23 +1,43 @@
 const service = require("./service");
 
-function listStores(req, res) {
-  res.json(service.listStores(req.query));
+async function listStores(req, res, next) {
+  try {
+    res.json(await service.listStores(req.query || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function createStore(req, res) {
-  res.status(201).json(service.createStore(req.body));
+async function createStore(req, res, next) {
+  try {
+    res.status(201).json(await service.createStore(req.user, req.body || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function storeFeedback(req, res) {
-  res.json(service.storeFeedback(req.params.slug, req.query));
+async function storeFeedback(req, res, next) {
+  try {
+    res.json(await service.storeFeedback(req.params.slug, req.query || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function storeProducts(req, res) {
-  res.json(service.storeProducts(req.params.slug, req.query));
+async function storeProducts(req, res, next) {
+  try {
+    res.json(await service.storeProducts(req.params.slug, req.query || {}));
+  } catch (err) {
+    next(err);
+  }
 }
 
-function storeBySlug(req, res) {
-  res.json(service.storeBySlug(req.params.slug));
+async function storeBySlug(req, res, next) {
+  try {
+    res.json(await service.storeBySlug(req.params.slug));
+  } catch (err) {
+    next(err);
+  }
 }
 
 module.exports = {

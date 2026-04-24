@@ -9,7 +9,7 @@ module.exports = function authorize(roles = []) {
     if (!roles.length) return next();
 
     if (!roles.includes(req.user.role)) {
-      const err = new Error("Forbidden: insufficient role permissions");
+      const err = new Error("Forbidden: role permissions");
       err.statusCode = 403;
       return next(err);
     }
